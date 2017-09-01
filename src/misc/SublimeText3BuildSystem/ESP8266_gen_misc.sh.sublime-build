@@ -1,0 +1,7 @@
+{
+  "cmd": "bash -c \"cd ..; dos2unix  ./gen_misc.sh; ./gen_misc.sh; exit;\"",//& cmd /C upload.bat
+  "working_dir": "$project_path",
+  "windows" : {
+      "shell": true
+  }
+}
