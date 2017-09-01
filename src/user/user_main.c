@@ -18,42 +18,49 @@ void ICACHE_FLASH_ATTR  wifi_handle_event_cb(System_Event_t *evt) {
 }
 
 unsigned int counter = 0;
+
 static os_timer_t osRechargeCapTask_timer;
 void osRechargeCapTask(void *arg){
 	os_timer_disarm(&osRechargeCapTask_timer);
+	os_printf("R %d\r\n", counter);
+	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
+}
 
-	//RESTEndpointADCCheckStatus();
-	// os_printf("D %d\r\n", counter);
-	// gpio_output_set(0, 0, 0, BIT14);
-	// wifi_set_sleep_type(LIGHT_SLEEP_T);
-	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTMS_U); // Or else the capacitor on the pin won't discharge.
-	gpio_output_set(0, 0, 0, BIT14);
+static os_timer_t osWaitForCapTask_timer;
+void osWaitForCapTask(void *arg){
+	os_timer_disarm(&osWaitForCapTask_timer);
+	os_printf("W %d\r\n", counter);
+	gpio_output_set(0, 0, 0, BIT14);// Input Set &= 1
 
+	wifi_set_sleep_type(LIGHT_SLEEP_T);
+	ETS_GPIO_INTR_ENABLE();// Enable interrupts
+}
+
+
+void startTimingLoop(){
+
+	os_timer_disarm(&osRechargeCapTask_timer);
+	os_timer_arm(&osRechargeCapTask_timer, 1, 1);
+
+	os_timer_disarm(&osWaitForCapTask_timer);
+	os_timer_arm(&osWaitForCapTask_timer, 50, 1);
 }
 
 void gpioInterruptTask(int * arg){
 
-	
+	ETS_GPIO_INTR_DISABLE();// Disable interrupts
+	wifi_set_sleep_type(NONE_SLEEP_T);
 
 	uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
 	counter++;
 	
+	os_printf("I %d\r\n", counter);
 
-	// Output Set &= 0
-	gpio_output_set(0, BIT14, BIT14, 0);
-	// Output Set &= 1
-	gpio_output_set(BIT14, 0, BIT14, 0);
-
-	// Let the interrupt capacitor discharge after 3 milliseconds
-	os_timer_disarm(&osRechargeCapTask_timer);
-	os_timer_arm(&osRechargeCapTask_timer, 500, 1);
+	startTimingLoop();
 
 	//clear	interrupt	status
 	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
-
-	// Add some delay to make sure interrupt GPIO is high before ending, It crashes otherwise
-	//os_delay_us(10);
 }
 
 
@@ -75,28 +82,27 @@ void ICACHE_FLASH_ATTR  user_init(void) {
 	// Running a task on interrupt instead of timers enabled the IC to go back to sleep sooner.
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
 	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTMS_U); // Or else the capacitor on the pin won't discharge.
+
 	// Output Set &= 0
-	gpio_output_set(0, BIT14, BIT14, 0);
+	//gpio_output_set(0, BIT14, BIT14, 0);
+
 	// Output Set &= 1
-	gpio_output_set(BIT14, 0, BIT14, 0);
+	//gpio_output_set(BIT14, 0, BIT14, 0);
 
 	gpio_pin_wakeup_enable(14, GPIO_PIN_INTR_LOLEVEL);// Attach wake from light sleep when low to GPIO14
 	gpio_pin_intr_state_set(14, GPIO_PIN_INTR_LOLEVEL);// Attach interrupt task to run on GPIO14
 	ets_isr_attach(ETS_GPIO_INUM, (ets_isr_t)gpioInterruptTask, NULL);// ^
-	ETS_GPIO_INTR_ENABLE();// Enable interrupts
-
-	// Create the task to start the capacitor discharge phase
-	os_timer_disarm(&osRechargeCapTask_timer);
-	os_timer_setfn(&osRechargeCapTask_timer, (os_timer_func_t *)osRechargeCapTask, NULL);
-	os_timer_arm(&osRechargeCapTask_timer, 1000, 1);
-
 	
 
-	// Start listening for connections
-	// RESTEndpointADCInupload	it();
-	// RESTServerInit();
+	os_timer_disarm(&osRechargeCapTask_timer);
+	os_timer_setfn(&osRechargeCapTask_timer, (os_timer_func_t *)osRechargeCapTask, NULL);
 
-	wifi_set_sleep_type(LIGHT_SLEEP_T);
+	os_timer_disarm(&osWaitForCapTask_timer);
+	os_timer_setfn(&osWaitForCapTask_timer, (os_timer_func_t *)osWaitForCapTask, NULL);
+
+	startTimingLoop();
+
+	// wifi_set_sleep_type(LIGHT_SLEEP_T);
 }
 
 uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set(void){
