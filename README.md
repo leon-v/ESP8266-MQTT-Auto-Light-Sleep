@@ -1,7 +1,6 @@
-## Low power real time ESP8266 with REST interface.
+## Low power real time ESP8266.
 
 ### THIS PROJEST IS STILL COMING OUT OF PROOF-OF-CONCEPT AND IS NOT STABLE
-I will be keeping an eye on [this thread on EEVBLOG](http://www.eevblog.com/forum/projects/real-time-low-power-%2810mw%29-esp8266-expirments/) 
 
 
 #### The Environment:
@@ -14,11 +13,8 @@ I am editing with Sublime text 3 and have a build script to simply execute gen_m
 
 You may well need to edit gen_misc.sh to suit your device. I have an ESP12E using the generic FTDI RS232 to USB module.
 
-There is a test REST script ESP_Test.html is an example of how to make a REST AJAX request from a browser.
-This is the script i use while doing the power analysis to give it some real world conditions.
-
 #### The Software:
-This firmware will eventually be able to take and send REST requests when events are triggered.
+This firmware will eventually be able to handle MQTT
 So far i have only thought about hot the ADC will be configured.
 
 * It will respond to request to /adc/0 thought to /adc/7
