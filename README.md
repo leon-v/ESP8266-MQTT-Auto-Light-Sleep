@@ -43,3 +43,10 @@ I am using a 10Kohm resistor on GPIO14, through a 4.7uF capacitor to ground. Wit
 The IC will crash if it gets a current surge on GPIO14, so don't go below 10K attached to it.
 Other resistor & capacitor values can be changed to get your timing right.
 I found that a 5 second delay is OK. The delay should only affect the amount 
+
+#### My calcs (back of the envelope)
+First stable configuration:
+50mW average over 23 hours of testing on battery power.
+So 8.6 days battery life on the NCR18650.
+
+Next test will be with MQTT client.
