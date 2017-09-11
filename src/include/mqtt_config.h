@@ -9,6 +9,23 @@
 
 #include "../../../secrets.h"
 
+/* Example of secrets.h
+#define WIFI_SSID "Your Wifi SSID"
+#define WIFI_PASS "Your Wifi Pass"
+
+#define STA_SSID	WIFI_SSID
+#define STA_PASS	WIFI_PASS
+
+#define MQTT_CLIENT_ID		"ESP_%08X"
+#define MQTT_USER			"Your MQTT Broker User Name"
+#define MQTT_PASS			"Your MQTT Broker Password"
+
+#define MQTT_HOST			"Your MQTT Broker IP or Domain" //or "mqtt.yourdomain.com"
+#define MQTT_PORT			1883
+#define MQTT_BUF_SIZE		1024
+#define MQTT_KEEPALIVE		240	 /*second*/
+*/
+
 #define STA_TYPE AUTH_WPA2_PSK
 
 #define MQTT_RECONNECT_TIMEOUT 	5	/*second*/
