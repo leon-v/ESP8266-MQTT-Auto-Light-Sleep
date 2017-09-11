@@ -17,31 +17,39 @@ void ICACHE_FLASH_ATTR sleepSetDisable(){
 }
 
 
+LOCAL os_timer_t taskServiceTimer;
+void ICACHE_FLASH_ATTR taskService(){
+	char adcValueString[6];
+	unsigned int adcValueRaw = system_adc_read();
+	os_sprintf(adcValueString, "%d", adcValueRaw * 5);
+	os_printf("%d\r\n", adcValueRaw * 5);
+	MQTT_Publish(mqttClient, "test", adcValueString, 4, 1, 0);
+}
+
 void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
+	wifi_set_sleep_type(NONE_SLEEP_T);
+
 	if (mqttEnable) {
-		char adcValueString[6];
-		unsigned int adcValueRaw = system_adc_read();
-		os_sprintf(adcValueString, "%d", adcValueRaw * 5);
-		os_printf("%d\r\n", adcValueRaw * 5);
-		MQTT_Publish(mqttClient, "/sensor/test/0", adcValueString, 4, 0, 0);
+		os_timer_disarm(&taskServiceTimer);
+		os_timer_arm(&taskServiceTimer, 1, 0);
 	}
 
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
-	os_delay_us(65535);
+	os_delay_us(50000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
-	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
+	
 
 	counter++;
 	os_printf("Wake Count :%d\n", counter);
 
-	wifi_set_sleep_type(NONE_SLEEP_T);
-	os_delay_us(100);
 	if (mqttEnable) {
 		wifi_set_sleep_type(LIGHT_SLEEP_T);
 	}
+
+	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 }
 
 
@@ -49,6 +57,9 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 
 	mqttClient = (MQTT_Client*) args;
+
+	os_timer_disarm(&taskServiceTimer);
+	os_timer_setfn(&taskServiceTimer, (os_timer_func_t *) taskService, NULL);
 
 	// Configure GPIO14 to act as an interrupt to wake the IC and to run a task.
 	// Running a task on interrupt instead of timers enabled the IC to go back to sleep sooner.
