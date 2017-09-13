@@ -51,14 +51,21 @@ void wifiConnectCb(uint8_t status){
 void mqttConnectedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Connected\r\n");
-	MQTT_Subscribe(client, "/mqtt/topic/0", 0);
-	MQTT_Subscribe(client, "/mqtt/topic/1", 1);
-	MQTT_Subscribe(client, "/mqtt/topic/2", 2);
-	MQTT_Subscribe(client, "/sensor/test/0", 0);
 
-	MQTT_Publish(client, "/mqtt/topic/0", "hello0", 6, 0, 0);
-	MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
-	MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
+	MQTT_Publish(client, "/sensor/test/online", "1", 1, 1, 1);
+	MQTT_InitLWT(client, "/sensor/test/online", "0", 1, 1);
+	
+	MQTT_Publish(client, "/sensor/test/max", "4200", 4, 1, 1);
+	MQTT_Publish(client, "/sensor/test/min", "3200", 4, 1, 1);
+
+	// MQTT_Subscribe(client, "/mqtt/topic/0", 0);
+	// MQTT_Subscribe(client, "/mqtt/topic/1", 1);
+	// MQTT_Subscribe(client, "/mqtt/topic/2", 2);
+	// MQTT_Subscribe(client, "/sensor/test/0", 0);
+
+	// MQTT_Publish(client, "/mqtt/topic/0", "hello0", 6, 0, 0);
+	// MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
+	// MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
 
 	sleepSetEnable();
 }
@@ -73,6 +80,8 @@ void mqttDisconnectedCb(uint32_t *args){
 void mqttPublishedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Published\r\n");
+
+	sleepSetEnable();
 }
 
 void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t data_len){
@@ -158,7 +167,6 @@ void user_init(void)
 	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 	//MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
 
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
 	MQTT_OnConnected(&mqttClient, mqttConnectedCb);
 	MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
 	MQTT_OnPublished(&mqttClient, mqttPublishedCb);
