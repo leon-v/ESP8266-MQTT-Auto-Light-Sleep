@@ -28,6 +28,10 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
 
+	//To Try:
+	// Use system_adc_fast_read 
+	// Try find some way to catch the WiFi when its not sending
+
 	unsigned int adc_num = 50;
 	unsigned int i;
 	double sum;
