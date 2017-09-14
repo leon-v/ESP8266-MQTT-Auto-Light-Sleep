@@ -32,6 +32,19 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	// Use system_adc_fast_read 
 	// Try find some way to catch the WiFi when its not sending
 
+	// Maybe void	system_phy_set_max_tpw(uint8	max_tpw) to 0 then back to max ? 
+	//uint8	max_tpw: maximum value of RF Tx Power, unit: 0.25 dBm, range [0, 82]. 
+	//wifi_station_set_auto_connect to 0 for ref so i remember to 
+	//bool	wifi_set_phy_mode(enum	phy_mode	mode)  
+	/*
+	enum	phy_mode	mode	:	physical	mode
+enum	phy_mode	{
+				PHY_MODE_11B	=	1,
+				PHY_MODE_11G	=	2,
+				PHY_MODE_11N	=	3
+};*/
+	// /wifi_status_led_install // Read pin and when off, load ADC
+
 	unsigned int adc_num = 50;
 	unsigned int i;
 	double sum;
