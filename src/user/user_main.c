@@ -154,8 +154,10 @@ user_rf_cal_sector_set(void)
 }
 
 
-void user_init(void)
-{
+void user_init(void){
+
+	
+
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(60000);
 

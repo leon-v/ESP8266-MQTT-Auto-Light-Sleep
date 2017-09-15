@@ -5,71 +5,78 @@
 #include "mqtt.h"
 
 unsigned int counter = 0;
-unsigned int mqttEnable = 0;
+unsigned int readyToSleep = 0;
 LOCAL MQTT_Client* mqttClient;
+static os_timer_t sleepReminderTimer;
 
+static os_timer_t sleepDischargeCapTimer;
+
+void sleepDischargeCapTask(void *arg){
+	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
+	readyToSleep = 1;
+}
 
 void ICACHE_FLASH_ATTR sleepSetEnable(){
+
+	if (!readyToSleep) {
+		os_timer_disarm(&sleepReminderTimer);
+		os_timer_arm(&sleepReminderTimer, 10, 0);
+		return;
+	}
+
+	//system_set_os_print(0);
 	ETS_GPIO_INTR_ENABLE();// Enable interrupts
 	wifi_set_sleep_type(LIGHT_SLEEP_T);
 }
 void ICACHE_FLASH_ATTR sleepSetDisable(){
+
+	os_timer_disarm(&sleepReminderTimer);
+
+	//system_set_os_print(1);
 	ETS_GPIO_INTR_DISABLE();// Disable interrupts
 	wifi_set_sleep_type(NONE_SLEEP_T);
 }
 
+void sleepReminderTask(void *arg){
+	sleepSetEnable();
+}
 
 void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
-	ets_intr_lock();
 	uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
-	
 
 	sleepSetDisable();
-	
-	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
 
-	//To Try:
-	// Use system_adc_fast_read 
-	// Try find some way to catch the WiFi when its not sending
-
-	// Maybe void	system_phy_set_max_tpw(uint8	max_tpw) to 0 then back to max ? 
-	//uint8	max_tpw: maximum value of RF Tx Power, unit: 0.25 dBm, range [0, 82]. 
-	//wifi_station_set_auto_connect to 0 for ref so i remember to 
-	//bool	wifi_set_phy_mode(enum	phy_mode	mode)  
-	/*
-	enum	phy_mode	mode	:	physical	mode
-enum	phy_mode	{
-				PHY_MODE_11B	=	1,
-				PHY_MODE_11G	=	2,
-				PHY_MODE_11N	=	3
-};*/
-	// /wifi_status_led_install // Read pin and when off, load ADC
-
-	unsigned int adc_num = 50;
-	unsigned int i;
+	uint16	adc_addr[100];
+	uint16	adc_num		=	100;
+	uint8	adc_clk_div	=	16;
+	uint32	i;
 	double sum;
-	for(i=0; i < adc_num; i++){
-		os_delay_us(1666);
-		sum+= (double) system_adc_read();
-	}
-
 	unsigned int vBatt;
-
-	vBatt = (unsigned int) ((sum / adc_num) * 5);
-
 	char adcValueString[6];
+
+	system_adc_read_fast(adc_addr,	adc_num,	adc_clk_div);
+
+	for(i=0; i < adc_num; i++){
+		sum+= (double) adc_addr[i];
+	}
+	
+	vBatt = (unsigned int) ((sum / adc_num) * 5);
+	
 	os_sprintf(adcValueString, "%d", vBatt);
 	os_printf("%d\r\n", vBatt);
 	MQTT_Publish(mqttClient, "/sensor/test/current", adcValueString, 4, 1, 1);
 
 	
-	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
-
 	counter++;
 	os_printf("Wake Count :%d\n", counter);
 
+	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
+
+	readyToSleep = 0;
+	os_timer_disarm(&sleepDischargeCapTimer);
+	os_timer_arm(&sleepDischargeCapTimer, 10, 0);
+
 	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
-	ets_intr_unlock();
 }
 
 
@@ -89,4 +96,12 @@ void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 	gpio_pin_wakeup_enable(14, GPIO_PIN_INTR_LOLEVEL);// Attach wake from light sleep when low to GPIO14
 	gpio_pin_intr_state_set(14, GPIO_PIN_INTR_LOLEVEL);// Attach interrupt task to run on GPIO14
 	ets_isr_attach(ETS_GPIO_INUM, (ets_isr_t)sleepWakeOnInterruptHandeler, NULL);// ^
+
+	os_timer_disarm(&sleepReminderTimer);
+	os_timer_setfn(&sleepReminderTimer, (os_timer_func_t *)sleepReminderTask, NULL);
+
+	os_timer_disarm(&sleepDischargeCapTimer);
+	os_timer_setfn(&sleepDischargeCapTimer, (os_timer_func_t *)sleepDischargeCapTask, NULL);
+
+	ETS_GPIO_INTR_ENABLE();// Enable interrupts
 }

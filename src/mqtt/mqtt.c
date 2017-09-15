@@ -386,9 +386,10 @@ mqtt_tcpclient_sent_cb(void *arg)
 	system_os_post(MQTT_TASK_PRIO, 0, (os_param_t)client);
 }
 
-void ICACHE_FLASH_ATTR mqtt_timer(void *arg)
-{
+void ICACHE_FLASH_ATTR mqtt_timer(void *arg) {
 	MQTT_Client* client = (MQTT_Client*)arg;
+
+	INFO("MQTT: Timer Tick\r\n");
 
 	if (client->connState == MQTT_DATA) {
 		client->keepAliveTick ++;
@@ -807,8 +808,8 @@ MQTT_Connect(MQTT_Client *mqttClient)
 
 
 	os_timer_disarm(&mqttClient->mqttTimer);
-	os_timer_setfn(&mqttClient->mqttTimer, (os_timer_func_t *)mqtt_timer, mqttClient);
-	os_timer_arm(&mqttClient->mqttTimer, 1000, 1);
+	(&mqttClient->mqttTimer, (os_timer_func_t *)mqtt_timer, mqttClient);
+	os_timer_arm(&mqttClient->mqttTimer, 100000, 1);
 
 	if (UTILS_StrToIP(mqttClient->host, &mqttClient->pCon->proto.tcp->remote_ip)) {
 		INFO("TCP: Connect to ip  %s:%d\r\n", mqttClient->host, mqttClient->port);

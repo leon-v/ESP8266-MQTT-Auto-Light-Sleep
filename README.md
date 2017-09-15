@@ -43,3 +43,8 @@ Other resistor & capacitor values can be changed to get your timing right.
 Charge delay can be adjusted in software to modify sleep time.
 I found that a 5 second delay is OK. The delay should only affect the amount.
 MQTT is brilliant at getting packets back and forth, so time could be increased significantly for extra battery life.
+
+First real world test sending MQTT data every 5 seonds showed a 100mV drop after 24 hours.
+Given that LiPo batteries drop 1000mv drop per charge would make about 10 days battery life.
+Not too bad, not too great.
+Scope is measuring 38mW. Will check later if that matches
