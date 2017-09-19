@@ -42,7 +42,7 @@
 
 #define MQTT_TASK_PRIO        		2
 #define MQTT_TASK_QUEUE_SIZE    	1
-#define MQTT_SEND_TIMOUT			5
+#define MQTT_SEND_TIMOUT			1000
 
 #ifndef QUEUE_BUFFER_SIZE
 #define QUEUE_BUFFER_SIZE		 	2048
@@ -611,9 +611,8 @@ MQTT_Ping(MQTT_Client *client)
 	return TRUE;
 }
 
-void ICACHE_FLASH_ATTR
-MQTT_Task(os_event_t *e)
-{
+void ICACHE_FLASH_ATTR MQTT_Task(os_event_t *e){
+
 	MQTT_Client* client = (MQTT_Client*)e->par;
 	uint8_t dataBuffer[MQTT_BUF_SIZE];
 	uint16_t dataLen;
@@ -809,7 +808,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 
 	os_timer_disarm(&mqttClient->mqttTimer);
 	(&mqttClient->mqttTimer, (os_timer_func_t *)mqtt_timer, mqttClient);
-	os_timer_arm(&mqttClient->mqttTimer, 100000, 1);
+	os_timer_arm(&mqttClient->mqttTimer, 1000, 1);
 
 	if (UTILS_StrToIP(mqttClient->host, &mqttClient->pCon->proto.tcp->remote_ip)) {
 		INFO("TCP: Connect to ip  %s:%d\r\n", mqttClient->host, mqttClient->port);

@@ -67,21 +67,21 @@ void mqttConnectedCb(uint32_t *args){
 	// MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
 	// MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
 
-	sleepSetEnable();
+	//sleepSetEnable();
 }
 
 void mqttDisconnectedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Disconnected\r\n");
 
-	sleepSetDisable();
+	//sleepSetDisable();
 }
 
 void mqttPublishedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Published\r\n");
 
-	sleepSetEnable();
+	//sleepSetEnable();
 }
 
 void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t data_len){
@@ -157,7 +157,7 @@ user_rf_cal_sector_set(void)
 void user_init(void){
 
 	
-
+	//system_set_os_print(1);
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(60000);
 
