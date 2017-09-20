@@ -1,8 +1,10 @@
+#include "wifi.h"
 #include "ets_sys.h"
 #include "osapi.h"
 #include "gpio.h"
 #include "user_interface.h"
 #include "mqtt.h"
+
 
 unsigned int counter = 0;
 unsigned int readyToSleep = 1;
@@ -65,6 +67,7 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 	uint32 thisWakeTime = system_get_rtc_time();
 
+	// De-bounce interrupt
 	if ((thisWakeTime - lastWakeTime) < 10000){
 		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 		return;
@@ -72,12 +75,14 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 	lastWakeTime = system_get_rtc_time();
 
-
+	// Recharge and start discharging capacitor
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
 	os_delay_us(20000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
 	os_printf("Interrupt\r\n");
+
+	wifi_check_ip();
 
 	wakeCount++;
 	if (wakeCount >= 4) {
@@ -90,6 +95,7 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 		os_timer_disarm(&goToSleep_timer);
 		os_timer_arm(&goToSleep_timer, 10, 1);
+
 	}
 
 	
