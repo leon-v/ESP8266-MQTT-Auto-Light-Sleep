@@ -32,15 +32,13 @@ The ESP8266 will go into Auto Light sleep, and needs to be woken via an external
 The interrupt is triggered by a discharging capacitor on GPIO14.
 After a lot of testing with various ways to trigger the wake, including using my scope/sig-gen to test many different signals,
 The best results by far were by using a capacitor on GPIO14.
-You can't just put the cap directly on GPIO14, there must be a resistor in between. RC filter style.
 
-I am using a 10Kohm resistor on GPIO14, through a 4.7uF capacitor to ground. With a 1Mohm across it to discharge the capacitor.
-^ this needs revising. Likely wrong
+I have a 10uF capacitor on GPIO14 to ground. With a 1Mohm across it to discharge the capacitor.
+Wake time is about 10 seconds between.
 
-The IC will crash if it gets a current surge on GPIO14, so don't go below 10K attached to it.
-The IC will crash due to many many finer details that i should have ironed out.
+The IC crashes easily if you do not have adequate decoupling.
 Other resistor & capacitor values can be changed to get your timing right.
-Charge delay can be adjusted in software to modify sleep time.
+Capacitor charge delay can be adjusted in software to modify sleep time.
 I found that a 5 second delay is OK. The delay should only affect the amount.
 MQTT is brilliant at getting packets back and forth, so time could be increased significantly for extra battery life.
 
@@ -48,3 +46,14 @@ First real world test sending MQTT data every 5 seonds showed a 100mV drop after
 Given that LiPo batteries drop 1000mv drop per charge would make about 10 days battery life.
 Not too bad, not too great.
 Scope is measuring 38mW. Will check later if that matches
+
+
+I currenly have the circuit running for days.
+I am getting re-connection issues. The IC stays awake and tries to send packets, fills its buffer, then crashes.
+I think i need to get MQTT ping working better.
+I need to check Wifi connectivity
+
+I have been runnign for 48 houes, and the 18650 dropped from 3900mV to 3700mV.
+So 200mV drop. Assuming 1V drop of total battery life, i should get 10 days.
+
+This is looking on par with what i need to get it to run from a solar panel
