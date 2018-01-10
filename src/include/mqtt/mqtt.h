@@ -145,4 +145,6 @@ void ICACHE_FLASH_ATTR MQTT_Connect(MQTT_Client *mqttClient);
 void ICACHE_FLASH_ATTR MQTT_Disconnect(MQTT_Client *mqttClient);
 BOOL ICACHE_FLASH_ATTR MQTT_Publish(MQTT_Client *client, const char* topic, const char* data, int data_length, int qos, int retain);
 
+void ICACHE_FLASH_ATTR mqtt_timer(void *arg);
+
 #endif /* USER_AT_MQTT_H_ */

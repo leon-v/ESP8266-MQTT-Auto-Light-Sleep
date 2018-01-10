@@ -26,6 +26,11 @@ I has trouble finding one online and was about to make my own in the same detail
 The current battery life isn't looking great, but i only have 1 minute of data and i will be running this for the next few days to see how long it lasts.
 
 #### The Hardware.
+2018-01-11: Have been working on a board for this project.
+https://easyeda.com/minn0w/ESP8266_18650-7a7763891ea04e61a1e84073071af4b8 (PCB With 4015 + OpAmp - Surface (V2))
+The idea is to build it so it can be assembled by OSHPark, almost all parts are part of their standard BOM.
+Still prototyping it. But my last spin is yielding positive results and i will be working on the software again once the hardware is more complete.
+
 I am using an ESP12E soldered onto a DIP breakout which has requisite pull down/ups.
 
 The ESP8266 will go into Auto Light sleep, and needs to be woken via an external interrupt.

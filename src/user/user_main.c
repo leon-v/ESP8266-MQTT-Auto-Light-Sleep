@@ -55,8 +55,8 @@ void mqttConnectedCb(uint32_t *args){
 	MQTT_Publish(client, "/sensor/test/online", "1", 1, 1, 1);
 	MQTT_InitLWT(client, "/sensor/test/online", "0", 1, 1);
 	
-	MQTT_Publish(client, "/sensor/test/max", "4200", 4, 1, 1);
-	MQTT_Publish(client, "/sensor/test/min", "3200", 4, 1, 1);
+	MQTT_Publish(client, "/sensor/test/max", "4500", 4, 1, 1);
+	MQTT_Publish(client, "/sensor/test/min", "2500", 4, 1, 1);
 
 	// MQTT_Subscribe(client, "/mqtt/topic/0", 0);
 	// MQTT_Subscribe(client, "/mqtt/topic/1", 1);

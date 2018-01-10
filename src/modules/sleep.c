@@ -11,30 +11,74 @@ unsigned int readyToSleep = 1;
 unsigned int wakeCount = 0;
 LOCAL MQTT_Client* mqttClient;
 
+void ICACHE_FLASH_ATTR setADC(unsigned int index){
+
+	if ((index >> 0) & 0x0001){
+		gpio_output_set(0, BIT16, BIT16, 0);
+	} else{
+		gpio_output_set(BIT16, 0, BIT16, 0);
+	}
+
+	if ((index >> 1) & 0x0001){
+		gpio_output_set(0, BIT12, BIT12, 0);
+	} else{
+		gpio_output_set(BIT12, 0, BIT12, 0);
+	}
+
+	if ((index >> 2) & 0x0001){
+		gpio_output_set(0, BIT13, BIT13, 0);
+	} else{
+		gpio_output_set(BIT13, 0, BIT13, 0);
+	}
+}
+
+uint16 adcindex = 0;
 void ICACHE_FLASH_ATTR sendADCData(){
 
 	os_printf("send ADC Data\r\n");
 
-	uint16	adc_addr[100];
-	uint16	adc_num		=	100;
-	uint32	i;
-	double sum;
-	unsigned int vBatt;
-	char stringBuffer[9];
+	
+	#define adcValueBuffferLength	20
 
-	ets_intr_lock();		 //close	interrupt
-	system_adc_read_fast(adc_addr,	adc_num,	8);
-	ets_intr_unlock();	 	 //open	interrupt
+	uint16 adc;
+	uint16 adcValueBufffer[adcValueBuffferLength];
+	uint16 adcValues[8];
+	uint16 adcValue;
+	uint16 adcValueIndex;
+	uint16 length;
+	double adcValueSum;
 
-	for(i=0; i < adc_num; i++){
-		sum+= (double) adc_addr[i];
+	for (adc = 0; adc < 8; adc++){
+
+		setADC(adc);
+		os_delay_us(500);
+
+		ets_intr_lock();		 //close	interrupt
+		system_adc_read_fast(adcValueBufffer,	adcValueBuffferLength,	8);
+		ets_intr_unlock();	 	 //open	interrupt
+
+		for(adcValueIndex = 0; adcValueIndex < adcValueBuffferLength; adcValueIndex++){
+			adcValue = adcValueBufffer[adcValueIndex];
+			adcValueSum+= (double) adcValue;
+		}
+
+		adcValues[adc] = (unsigned int) (adcValueSum / adcValueBuffferLength);
 	}
-	
-	vBatt = (unsigned int) ((sum / adc_num) * 5);
-	
-	os_sprintf(stringBuffer, "%d", vBatt);
-	os_printf("%d\r\n", vBatt);
-	MQTT_Publish(mqttClient, "/sensor/test/current", stringBuffer, strlen(stringBuffer), 1, 1);
+
+	char valueString[9];
+	char pathString[24];
+
+	for (adc = 0; adc < 8; adc++){
+
+		adcValue = adcValues[adc];
+
+		os_sprintf(valueString, "%d", adcValue);
+		os_sprintf(pathString, "/sensor/adc%d/current", (unsigned int) adc);
+
+		os_printf("ADC:%d = %d\r\n", adc, adcValue);
+		MQTT_Publish(mqttClient, pathString, valueString, strlen(valueString), 1, 1);
+
+	}
 
 	
 
@@ -51,7 +95,7 @@ void goToSleep(void *arg){
 	if (mqttClient->msgQueue.rb.fill_cnt > 0) {
 
 		// Keep the IC awake and let the queue process
-		os_timer_arm(&goToSleep_timer, 1, 1);
+		os_timer_arm(&goToSleep_timer, 10, 1);
 	}
 
 	// If the queue is empty, put the IC to sleep
@@ -77,7 +121,7 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 	// Recharge and start discharging capacitor
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
-	os_delay_us(20000);
+	os_delay_us(1000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
 	os_printf("Interrupt\r\n");
@@ -90,6 +134,8 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 		wakeCount = 0;
 
 		wifi_set_sleep_type(NONE_SLEEP_T);
+
+		mqtt_timer(mqttClient);
 
 		sendADCData();
 
@@ -111,6 +157,12 @@ void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 	gpio_output_set(BIT0, 0, 0, BIT0);// Input Set
 	gpio_output_set(BIT1, 0, 0, BIT1);// Input Set
 	// MTDO, U0TXD and GPIO0
+
+
+	//Setup 415 pins
+	gpio_output_set(BIT13, 0, BIT13, 0);
+	gpio_output_set(BIT12, 0, BIT12, 0);
+	gpio_output_set(BIT16, 0, BIT16, 0);
 
 
 	mqttClient = (MQTT_Client*) args;
