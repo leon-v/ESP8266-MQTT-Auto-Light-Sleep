@@ -1,7 +1,7 @@
 #ifndef __MQTT_CONFIG_H__
 #define __MQTT_CONFIG_H__
 
-#define CFG_HOLDER	0x00000005	/* Change this value to load default configurations */
+#define CFG_HOLDER	0x00000010	/* Change this value to load default configurations */
 #define CFG_LOCATION	0x79	/* Please don't change or if you know what you doing */
 #define MQTT_SSL_ENABLE
 
