@@ -161,22 +161,31 @@ void user_init(void){
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(60000);
 
+	int configMode = 1;
+
 	CFG_Load();
 
-	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
-	//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
+	if (configMode){
+		HTTPConfig_Init();
+	}
 
-	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-	//MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
+	else{
 
-	MQTT_OnConnected(&mqttClient, mqttConnectedCb);
-	MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
-	MQTT_OnPublished(&mqttClient, mqttPublishedCb);
-	MQTT_OnData(&mqttClient, mqttDataCb);
+		MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
+		//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
 
-	WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);
+		MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
+		//MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
 
-	sleepInit(&mqttClient);
+		MQTT_OnConnected(&mqttClient, mqttConnectedCb);
+		MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
+		MQTT_OnPublished(&mqttClient, mqttPublishedCb);
+		MQTT_OnData(&mqttClient, mqttDataCb);
 
-	INFO("\r\nSystem started ...\r\n");
+		WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);
+
+		sleepInit(&mqttClient);
+
+		INFO("\r\nSystem started ...\r\n");
+	}
 }
