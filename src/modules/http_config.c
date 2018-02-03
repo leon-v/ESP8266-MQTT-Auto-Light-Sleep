@@ -107,43 +107,26 @@ void HTTPConfig_Init(void){
 
 	struct softap_config config;
 
-	// wifi_softap_get_config(&config); // Get config first.
+	wifi_softap_get_config(&config); // Get config first.
 
-	// os_memset(config.ssid, 0, 32);
-	// os_memset(config.password, 0, 64);
-	// os_memcpy(config.ssid, "ESP8266 V-Sensor Config Mode", 28);
-	// os_memcpy(config.password, "", 0);
-	// config.authmode = AUTH_OPEN;
-	// config.ssid_len = 28;// or its actual length
-	// config.beacon_interval = 100;
-	// config.max_connection = 1; // how many stations can connect to ESP8266 softAP at most.
+	os_memset(config.ssid, 0, 32);
+	os_memset(config.password, 0, 64);
+	os_memcpy(config.ssid, "ESP8266 V-Sensor Config Mode", 28);
+	os_memcpy(config.password, "", 0);
+	config.authmode = AUTH_OPEN;
+	config.ssid_len = 28;// or its actual length
+	config.beacon_interval = 100;
+	config.max_connection = 1; // how many stations can connect to ESP8266 softAP at most.
 
-	// wifi_softap_set_config(&config);// Set ESP8266 softap config .
+	wifi_softap_set_config(&config);// Set ESP8266 softap config .
 
-	// os_printf("WiFi AP Started \r\n");
+	os_printf("WiFi AP Started \r\n");
 
-	// uint8 mode = 0;
-	// wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, &mode);
+	uint8 mode = 0;
+	wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, &mode);
 
-	// os_printf("DHCP Started \r\n");
+	os_printf("DHCP Started \r\n");
 
-
-
-
-
-	os_printf("WIFI_INIT\r\n");
-	wifi_set_opmode_current(STATION_MODE);
-
-	struct station_config stationConf;
-	os_memset(&stationConf, 0, sizeof(struct station_config));
-
-	os_sprintf(stationConf.ssid, "%s", "valkenorton2.4Ghz_Fritz");
-	os_sprintf(stationConf.password, "%s", "ubuntugrl7");
-
-	wifi_station_set_config_current(&stationConf);
-
-	wifi_station_set_auto_connect(TRUE);
-	wifi_station_connect();
 
 
 
