@@ -156,6 +156,7 @@ user_rf_cal_sector_set(void)
 
 void user_init(void){
 
+	INFO("\r\nBOOT\r\n");
 	
 	//system_set_os_print(1);
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
@@ -163,13 +164,16 @@ void user_init(void){
 
 	int configMode = 1;
 
-	CFG_Load();
-
 	if (configMode){
+		INFO("\r\nStarting HTTP Config ....\r\n");
 		HTTPConfig_Init();
 	}
 
 	else{
+
+		CFG_Load();
+
+		INFO("\r\nStarting MQTT ....\r\n");
 
 		MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
 		//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);

@@ -184,6 +184,16 @@ typedef enum _auth_mode {
     AUTH_MAX
 } AUTH_MODE;
 
+typedef enum _cipher_type {
+    CIPHER_NONE = 0,
+    CIPHER_WEP40,
+    CIPHER_WEP104,
+    CIPHER_TKIP,
+    CIPHER_CCMP,
+    CIPHER_TKIP_CCMP,
+    CIPHER_UNKNOWN,
+} CIPHER_TYPE;
+
 uint8 wifi_get_opmode(void);
 uint8 wifi_get_opmode_default(void);
 bool wifi_set_opmode(uint8 opmode);
@@ -205,6 +215,13 @@ struct bss_info {
     sint16 freqcal_val;
     uint8 *esp_mesh_ie;
     uint8 simple_pair;
+    CIPHER_TYPE pairwise_cipher;
+    CIPHER_TYPE group_cipher;
+    uint32_t phy_11b:1;
+    uint32_t phy_11g:1;
+    uint32_t phy_11n:1;
+    uint32_t wps:1;
+    uint32_t reserved:28;
 };
 
 typedef struct _scaninfo {
@@ -218,12 +235,18 @@ typedef struct _scaninfo {
 
 typedef void (* scan_done_cb_t)(void *arg, STATUS status);
 
+typedef struct {
+    int8  rssi;
+    AUTH_MODE  authmode;
+} wifi_fast_scan_threshold_t;
+
 struct station_config {
     uint8 ssid[32];
     uint8 password[64];
     uint8 bssid_set;    // Note: If bssid_set is 1, station will just connect to the router
                         // with both ssid[] and bssid[] matched. Please check about this.
     uint8 bssid[6];
+    wifi_fast_scan_threshold_t threshold;
 };
 
 bool wifi_station_get_config(struct station_config *config);
@@ -236,11 +259,32 @@ bool wifi_station_disconnect(void);
 
 sint8 wifi_station_get_rssi(void);
 
+typedef enum {
+    WIFI_SCAN_TYPE_ACTIVE = 0,  /**< active scan */
+    WIFI_SCAN_TYPE_PASSIVE,     /**< passive scan */
+} wifi_scan_type_t;
+
+/** @brief Range of active scan times per channel */
+typedef struct {
+    uint32_t min;  /**< minimum active scan time per channel, units: millisecond */
+    uint32_t max;  /**< maximum active scan time per channel, units: millisecond, values above 1500ms may
+                                          cause station to disconnect from AP and are not recommended.  */
+} wifi_active_scan_time_t;
+
+/** @brief Aggregate of active & passive scan time per channel */
+typedef union {
+    wifi_active_scan_time_t active;  /**< active scan time per channel, units: millisecond. */
+    uint32_t passive;                /**< passive scan time per channel, units: millisecond, values above 1500ms may
+                                          cause station to disconnect from AP and are not recommended. */
+} wifi_scan_time_t;
+
 struct scan_config {
     uint8 *ssid;    // Note: ssid == NULL, don't filter ssid.
     uint8 *bssid;    // Note: bssid == NULL, don't filter bssid.
     uint8 channel;    // Note: channel == 0, scan all channels, otherwise scan set channel.
     uint8 show_hidden;    // Note: show_hidden == 1, can get hidden ssid routers' info.
+    wifi_scan_type_t scan_type; // scan type, active or passive
+    wifi_scan_time_t scan_time; // scan time per channel
 };
 
 bool wifi_station_scan(struct scan_config *config, scan_done_cb_t cb);
@@ -403,6 +447,7 @@ enum {
     EVENT_SOFTAPMODE_STADISCONNECTED,
     EVENT_SOFTAPMODE_PROBEREQRECVED,
     EVENT_OPMODE_CHANGED,
+    EVENT_SOFTAPMODE_DISTRIBUTE_STA_IP,
     EVENT_MAX
 };
 
@@ -470,6 +515,12 @@ typedef struct {
 
 typedef struct {
     uint8 mac[6];
+    struct ip_addr ip;
+    uint8 aid;
+} Event_SoftAPMode_Distribute_Sta_IP_t;
+
+typedef struct {
+    uint8 mac[6];
     uint8 aid;
 } Event_SoftAPMode_StaDisconnected_t;
 
@@ -489,6 +540,7 @@ typedef union {
     Event_StaMode_AuthMode_Change_t        auth_change;
     Event_StaMode_Got_IP_t                got_ip;
     Event_SoftAPMode_StaConnected_t        sta_connected;
+    Event_SoftAPMode_Distribute_Sta_IP_t   distribute_sta_ip;
     Event_SoftAPMode_StaDisconnected_t    sta_disconnected;
     Event_SoftAPMode_ProbeReqRecved_t   ap_probereqrecved;
     Event_OpMode_Change_t               opmode_changed;
@@ -644,5 +696,49 @@ void wifi_enable_gpio_wakeup(uint32 i, GPIO_INT_TYPE intr_status);
 void wifi_disable_gpio_wakeup(void);
 
 void uart_div_modify(uint8 uart_no, uint32 DivLatchValue);
+
+typedef enum {
+    WIFI_COUNTRY_POLICY_AUTO,   /**< Country policy is auto, use the country info of AP to which the station is connected */
+    WIFI_COUNTRY_POLICY_MANUAL, /**< Country policy is manual, always use the configured country info */
+} WIFI_COUNTRY_POLICY;
+
+typedef struct {
+    char cc[3];               /**< country code string */
+    uint8_t schan;            /**< start channel */
+    uint8_t nchan;            /**< total channel number */
+    uint8_t policy;           /**< country policy */
+} wifi_country_t;
+
+/**
+  * @brief     configure country info
+  *
+  * @attention 1. The default country is {.cc="CN", .schan=1, .nchan=13, policy=WIFI_COUNTRY_POLICY_AUTO}
+  * @attention 2. When the country policy is WIFI_COUNTRY_POLICY_AUTO, use the country info of AP to which the station is
+  *               connected. E.g. if the configured country info is {.cc="USA", .schan=1, .nchan=11}, the country info of
+  *               the AP to which the station is connected is {.cc="JP", .schan=1, .nchan=14}, then our country info is 
+  *               {.cc="JP", .schan=1, .nchan=14}. If the station disconnected from the AP, the country info back to
+  *               {.cc="USA", .schan=1, .nchan=11} again.
+  * @attention 3. When the country policy is WIFI_COUNTRY_POLICY_MANUAL, always use the configured country info.
+  * @attention 4. When the country info is changed because of configuration or because the station connects to a different
+  *               external AP, the country IE in probe response/beacon of the soft-AP is changed also.
+  * @attention 5. The country configuration is not stored into flash
+  *
+  * @param     wifi_country_t *country: the configured country info
+  *
+  * @return  0 : succeed
+  * @return -1 : fail
+  */
+bool wifi_set_country(wifi_country_t *country);
+
+/**
+  * @brief     get the current country info
+  *
+  * @param     wifi_country_t *country: country info
+  *
+  * @return  0 : succeed
+  * @return -1 : fail
+  */
+bool wifi_get_country(wifi_country_t *country);
+
 
 #endif

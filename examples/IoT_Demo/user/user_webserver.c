@@ -66,6 +66,8 @@ uint8 upgrade_lock = 0;
 LOCAL os_timer_t app_upgrade_10s;
 LOCAL os_timer_t upgrade_check_timer;
 
+extern uint32 priv_param_start_sec;
+
 /******************************************************************************
  * FunctionName : device_get
  * Description  : set up the device information parmer as a JSON format
@@ -1549,13 +1551,13 @@ webserver_recv(void *arg, char *pusrdata, unsigned short length)
 
                 if (os_strcmp(pURL_Frame->pSelect, "config") == 0 &&
                         os_strcmp(pURL_Frame->pCommand, "command") == 0) {
-					#if SENSOR_DEVICE
+#if SENSOR_DEVICE
 
                     if (os_strcmp(pURL_Frame->pFilename, "sleep") == 0) {
-					#else
+#else
 
                     if (os_strcmp(pURL_Frame->pFilename, "reboot") == 0) {
-					#endif
+#endif
 
                         if (pParseBuffer != NULL) {
                             if (restart_10ms != NULL) {
@@ -1567,11 +1569,11 @@ webserver_recv(void *arg, char *pusrdata, unsigned short length)
                             }
 
                             rstparm->pespconn = ptrespconn;
-							#if SENSOR_DEVICE
+#if SENSOR_DEVICE
                             rstparm->parmtype = DEEP_SLEEP;
-							#else
+#else
                             rstparm->parmtype = REBOOT;
-							#endif
+#endif
 
                             if (restart_10ms == NULL) {
                                 restart_10ms = (os_timer_t *)os_malloc(sizeof(os_timer_t));
@@ -1637,7 +1639,7 @@ webserver_recv(void *arg, char *pusrdata, unsigned short length)
                         }
                     }
 
-					#if PLUG_DEVICE
+#if PLUG_DEVICE
                     else if (os_strcmp(pURL_Frame->pFilename, "switch") == 0) {
                         if (pParseBuffer != NULL) {
                             struct jsontree_context js;
@@ -1649,9 +1651,9 @@ webserver_recv(void *arg, char *pusrdata, unsigned short length)
                         }
                     }
 
-					#endif
+#endif
 
-					#if LIGHT_DEVICE
+#if LIGHT_DEVICE
                     else if (os_strcmp(pURL_Frame->pFilename, "light") == 0) {
                         if (pParseBuffer != NULL) {
                             struct jsontree_context js;
@@ -1672,13 +1674,12 @@ webserver_recv(void *arg, char *pusrdata, unsigned short length)
                             response_send(ptrespconn, true);
                             extern  struct esp_platform_saved_param esp_param;
                             esp_param.activeflag = 0;
-                            system_param_save_with_protect(ESP_PARAM_START_SEC, &esp_param, sizeof(esp_param));
-                            
+                            system_param_save_with_protect(priv_param_start_sec + 1, &esp_param, sizeof(esp_param));
                             system_restore();
                             system_restart();
                     }
 
-					#endif
+#endif
                     else {
                         response_send(ptrespconn, false);
                     }
@@ -1766,7 +1767,9 @@ void webserver_discon(void *arg)
  * Parameters   : arg -- Additional argument to pass to the callback function
  * Returns      : none
 *******************************************************************************/
-LOCAL void ICACHE_FLASH_ATTR webserver_listen(void *arg) {
+LOCAL void ICACHE_FLASH_ATTR
+webserver_listen(void *arg)
+{
     struct espconn *pesp_conn = arg;
 
     espconn_regist_recvcb(pesp_conn, webserver_recv);

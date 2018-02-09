@@ -19,7 +19,7 @@ rm ./firmware/*
 mkdir ./firmware
 
 # cp ../bin/boot_v1.6.bin					./firmware/0x00000.bin
-# cp ../bin/esp_init_data_default.bin		./firmware/0x3fc000.bin
+# cp ../bin/esp_init_data_default_v08.bin	./firmware/0x3fc000.bin
 # cp ../bin/blank.bin						./firmware/0xfe000.bin
 # cp ../bin/blank.bin						./firmware/0x3fe000.bin
 
