@@ -80,15 +80,7 @@ void ICACHE_FLASH_ATTR CFG_Load() {
 		os_sprintf(sysCfg.device_id, MQTT_CLIENT_ID, system_get_chip_id());
 		sysCfg.device_id[sizeof(sysCfg.device_id) - 1] = '\0';
 		
-		os_strncpy(sysCfg.sta_ssid, STA_SSID, sizeof(sysCfg.sta_ssid) - 1);
-		os_strncpy(sysCfg.sta_pwd, STA_PASS, sizeof(sysCfg.sta_pwd) - 1);
 		sysCfg.sta_type = STA_TYPE;
-
-		os_strncpy(sysCfg.mqtt_host, MQTT_HOST, sizeof(sysCfg.mqtt_host) - 1);
-		sysCfg.mqtt_port = MQTT_PORT;
-		os_strncpy(sysCfg.mqtt_user, MQTT_USER, sizeof(sysCfg.mqtt_user) - 1);
-		os_strncpy(sysCfg.mqtt_pass, MQTT_PASS, sizeof(sysCfg.mqtt_pass) - 1);
-
 		sysCfg.security = DEFAULT_SECURITY;	/* default non ssl */
 
 		sysCfg.mqtt_keepalive = MQTT_KEEPALIVE;

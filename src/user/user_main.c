@@ -162,7 +162,9 @@ void user_init(void){
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(60000);
 
-	int configMode = 1;
+	int configMode = 0;
+
+	CFG_Load();
 
 	if (configMode){
 		INFO("\r\nStarting HTTP Config ....\r\n");
@@ -171,15 +173,11 @@ void user_init(void){
 
 	else{
 
-		CFG_Load();
-
 		INFO("\r\nStarting MQTT ....\r\n");
 
 		MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
-		//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
 
 		MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-		//MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
 
 		MQTT_OnConnected(&mqttClient, mqttConnectedCb);
 		MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);

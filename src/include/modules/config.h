@@ -46,6 +46,13 @@ typedef struct{
 	uint8_t mqtt_pass[32];
 	uint32_t mqtt_keepalive;
 	uint8_t security;
+	char mqtt_topicroot[64];
+	char mqtt_topicadc0[32];
+	char mqtt_topicadc1[32];
+	char mqtt_topicadc2[32];
+	char mqtt_topicadc3[32];
+	char mqtt_topicadc4[32];
+	char mqtt_topicadc5[32];
 } SYSCFG;
 
 typedef struct {

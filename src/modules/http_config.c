@@ -13,16 +13,16 @@
 
 LOCAL struct espconn esp_conn;
 LOCAL esp_tcp esptcp;
-LOCAL char recieveBuffer[2048];
-LOCAL unsigned int recieveBufferPosition = 0;
+LOCAL char * recieveBuffer = NULL;
 
 LOCAL void HTTPConfig_TCPServerSendResponse(struct espconn *pespconn, int error, char *html_txt) {
+
 	char *buffer = NULL;
 	int html_length = 0;
-	buffer = (char *) os_malloc(256 * sizeof(char));
+	buffer = (char *) os_malloc(128 * sizeof(char));
 	if (buffer != NULL) {
 		if (html_txt != NULL) {
-			html_length = os_strlen(html_txt);
+			html_length = strlen(html_txt);
 		} else {
 			html_length = 0;
 		}
@@ -35,8 +35,9 @@ LOCAL void HTTPConfig_TCPServerSendResponse(struct espconn *pespconn, int error,
 		,error, html_length);
 
 		if(html_length > 0) {
-			buffer = (char *)os_realloc(buffer, (256 + html_length) *sizeof(char));
-			os_strcat(buffer, html_txt);
+			buffer = (char *)os_realloc(buffer, (128 + html_length) *sizeof(char));
+			strcat(buffer, html_txt);
+			os_free(html_txt);
 		}
 
 		espconn_sent(pespconn, buffer, strlen(buffer));
@@ -62,8 +63,11 @@ LOCAL char* HTTPConfig_HTMLEntityDecode(char * encoded){
 		}
 
 		else if (encoded[encodedPosition] == '%'){
-			decoded[decodedPosition] = encoded[encodedPosition];
-			encodedPosition++;
+			char tmp[3] = {0};
+			strncpy(tmp, encoded + encodedPosition + 1, 2);
+			decoded[decodedPosition] = strtol(tmp, NULL, 16);
+
+			encodedPosition+=3;
 		}
 
 		else{
@@ -78,81 +82,118 @@ LOCAL char* HTTPConfig_HTMLEntityDecode(char * encoded){
 
 }
 
+LOCAL char*  HTTPConfig_GetFormInputNumber(char* buffer, char * label, char * name, int value, char * type){
+
+	char *html = NULL;
+	html = (char *) os_malloc(256 * sizeof(char));
+
+	os_sprintf(html, "<tr>\
+		<td>%s:</td>\
+		<td><input name='%s' value='%d' type='%s'></td>\
+	</tr>", label, name, value, type);
+	
+	buffer = (char *) os_realloc(buffer, (strlen(buffer) + strlen(html)) * sizeof(char));
+
+	strcat(buffer, html);
+	os_free(html);
+	return buffer;
+}
+
+LOCAL char*  HTTPConfig_GetFormInputString(char* buffer, char * label, char * name, char * value, int valueLength, char * type){
+
+	char *html = NULL;
+	html = (char *) os_malloc(256 * sizeof(char));
+
+	os_sprintf(html, "<tr>\
+		<td>%s:</td>\
+		<td><input name='%s' value='%s' maxlength='%d' type='%s'></td>\
+	</tr>", label, name, value, valueLength, type);
+	
+	buffer = (char *) os_realloc(buffer, (strlen(buffer) + strlen(html)) * sizeof(char));
+
+	strcat(buffer, html);
+	os_free(html);
+	return buffer;
+}
+
+
 LOCAL char* HTTPConfig_GetForm(void){
 	char *html = NULL;
-	html = (char *) os_malloc(2048 * sizeof(char));
+	html = (char *) os_malloc(4096 * sizeof(char));
 
 	CFG_Load();
 
-	os_sprintf(html, "<!DOCTYPE html>\
-		<html>\
-		<head>\
-			<title>ESP8266 V-Config</title>\
-		</head>\
-		<body>\
-		<form method='post'>\
-			<table>\
-				<tbody>\
-					<tr>\
-						<td>WiFi SSID:</td>\
-						<td><input name='sta_ssid' value='%s'></td>\
-					</tr>\
-					<tr>\
-						<td>WiFi Password:</td>\
-						<td><input name='sta_pwd' value='%s' type='password'></td>\
-					</tr>\
-					<tr>\
-						<td>MQTT Host:</td>\
-						<td><input name='mqtt_host' value='%s'></td>\
-					</tr>\
-					<tr>\
-						<td>MQTT Port:</td>\
-						<td><input name='mqtt_port' value='%d'></td>\
-					</tr>\
-					<tr>\
-						<td>MQTT Username:</td>\
-						<td><input name='mqtt_user' value='%s'></td>\
-					</tr>\
-					<tr>\
-						<td>MQTT Password:</td>\
-						<td><input name='mqtt_pass' value='%s' type='password'></td>\
-					</tr>\
- 					<tr>\
- 						<td>\
-							<input type='submit' value='Save Settings' >\
-						</td>\
-					</tr>\
-				</tbody>\
-			</table>\
-		</form>\
-		</body>\
-	</html>",
-		sysCfg.sta_ssid,
-		sysCfg.sta_pwd,
-		sysCfg.mqtt_host,
-		sysCfg.mqtt_port,
-		sysCfg.mqtt_user,
-		sysCfg.mqtt_pass
+strcpy(html, "<!DOCTYPE html>\
+<html>\
+<head>\
+	<title>ESP8266 V-Config</title>\
+</head>\
+<style>\
+body{\
+	font-family: sans-serif;\
+	color: coral;\
+	background-color: aliceblue;\
+}\
+input{\
+	border-radius: 5px;\
+	border: 1px solid coral;\
+	height: 20px;\
+	padding: 5px;\
+}\
+button{\
+	border-radius: 5px;\
+	background-color: coral;\
+	border: 1px solid coral;\
+	color: aliceblue;\
+	padding: 10px;\
+}\
+</style>\
+<body>\
+<form method='post'>\
+	<table>\
+		<tbody>");
 
-	);
+	html = HTTPConfig_GetFormInputString(html, "WiFi SSID", 		"sta_ssid", 		sysCfg.sta_ssid, 		sizeof(sysCfg.sta_ssid),	"text");
+	html = HTTPConfig_GetFormInputString(html, "WiFi Password", 	"sta_pwd", 			sysCfg.sta_pwd, 		sizeof(sysCfg.sta_pwd),"password");
+	html = HTTPConfig_GetFormInputString(html, "MQTT Host", 		"mqtt_host", 		sysCfg.mqtt_host, 		sizeof(sysCfg.mqtt_host),"text");
+	html = HTTPConfig_GetFormInputNumber(html, "MQTT Port", 		"mqtt_port", 		sysCfg.mqtt_port, 		"number");
+	html = HTTPConfig_GetFormInputString(html, "MQTT User Name", 	"mqtt_user", 		sysCfg.mqtt_user, 		sizeof(sysCfg.mqtt_user),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT Password", 	"mqtt_pass", 		sysCfg.mqtt_pass, 		sizeof(sysCfg.mqtt_pass),"password");
+	html = HTTPConfig_GetFormInputString(html, "MQTT Root Topic", 	"mqtt_topicroot", 	sysCfg.mqtt_topicroot, 	sizeof(sysCfg.mqtt_topicroot),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC0 Topic", 	"mqtt_topicadc0", 	sysCfg.mqtt_topicadc0, 	sizeof(sysCfg.mqtt_topicadc0),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC1 Topic", 	"mqtt_topicadc1", 	sysCfg.mqtt_topicadc1, 	sizeof(sysCfg.mqtt_topicadc1),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC2 Topic", 	"mqtt_topicadc2", 	sysCfg.mqtt_topicadc2, 	sizeof(sysCfg.mqtt_topicadc2),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC3 Topic", 	"mqtt_topicadc3", 	sysCfg.mqtt_topicadc3, 	sizeof(sysCfg.mqtt_topicadc3),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC4 Topic", 	"mqtt_topicadc4", 	sysCfg.mqtt_topicadc4, 	sizeof(sysCfg.mqtt_topicadc4),"text");
+	html = HTTPConfig_GetFormInputString(html, "MQTT ADC5 Topic", 	"mqtt_topicadc5", 	sysCfg.mqtt_topicadc5, 	sizeof(sysCfg.mqtt_topicadc5),"text");
+
+html = (char *) os_realloc(html, (strlen(html) + 130)  *sizeof(char));
+strcat(html, "<tr>\
+					<td>\
+						<button>Save Settings</button>\
+					</td>\
+				</tr>\
+			</tbody>\
+		</table>\
+	</form>\
+	</body>\
+</html>");
 
 	return html;
 }
 
 
-LOCAL void HTTPConfig_SetData(char * pusrdata){
+LOCAL void HTTPConfig_SetData(){
 
-	char *httpData = 0;
-	httpData = (char *)os_strstr(pusrdata, "\r\n\r\n");
+	char *httpData = NULL;
+	httpData = (char *)strstr(recieveBuffer, "\r\n\r\n");
 	httpData+=4;
 
 	os_printf("tcp dat : %s \r\n", httpData);
 
 	char *key = NULL;
-	key = (char *) os_malloc(64 * sizeof(char));
-
 	char *value = NULL;
-	value = (char *) os_malloc(64 * sizeof(char));
+	
 
 	char *end = 0;
 	int length = 0;
@@ -162,28 +203,29 @@ LOCAL void HTTPConfig_SetData(char * pusrdata){
 	int loop = 1;
 	while (loop){
 
+		key = (char *) os_calloc(64, sizeof(char));
+		value = (char *) os_calloc(64, sizeof(char));
+
 		os_printf("Loop...\r\n");
 
-		end = (char *) os_strstr(httpData, "=");
+		end = (char *) strstr(httpData, "=");
 		if (end == NULL){
 			os_printf("Failed to find = when looping through POST vars\r\n");
 			break;
 		}
 		length = end - httpData;
-		os_strncpy(key, httpData, length);
-		key[length] = '\0';
+		strncpy(key, httpData, length);
 
 		httpData = end + 1;
 
-		end = (char *) os_strstr(httpData, "&");
+		end = (char *) strstr(httpData, "&");
 		if (end != NULL){
 			length = end - httpData;
 		} else{
 			loop = 0;
 			length = strlen(httpData);
 		}
-		os_strncpy(value, httpData, length);
-		value[length] = '\0';
+		strncpy(value, httpData, length);
 
 		httpData = end + 1;
 
@@ -191,25 +233,45 @@ LOCAL void HTTPConfig_SetData(char * pusrdata){
 
 		value = HTTPConfig_HTMLEntityDecode(value);
 
-		if (os_strcmp(key, "sta_ssid") == 0) {
-			os_strcpy(sysCfg.sta_ssid, value);
+		if (strcmp(key, "sta_ssid") == 0) {
+			strcpy(sysCfg.sta_ssid, value);
 		}
-		else if (os_strcmp(key, "sta_pwd") == 0) {
-			os_strcpy(sysCfg.sta_pwd, value);
+		else if (strcmp(key, "sta_pwd") == 0) {
+			strcpy(sysCfg.sta_pwd, value);
 		}
-		else if (os_strcmp(key, "mqtt_host") == 0) {
-			os_strcpy(sysCfg.mqtt_host, value);
+		else if (strcmp(key, "mqtt_host") == 0) {
+			strcpy(sysCfg.mqtt_host, value);
 		}
-		else if (os_strcmp(key, "mqtt_port") == 0) {
+		else if (strcmp(key, "mqtt_port") == 0) {
 			sysCfg.mqtt_port = atoi(value);
 		}
-		else if (os_strcmp(key, "mqtt_user") == 0) {
-			os_strcpy(sysCfg.mqtt_user, value);
+		else if (strcmp(key, "mqtt_user") == 0) {
+			strcpy(sysCfg.mqtt_user, value);
 		}
-		else if (os_strcmp(key, "mqtt_pass") == 0) {
-			os_strcpy(sysCfg.mqtt_pass, value);
+		else if (strcmp(key, "mqtt_pass") == 0) {
+			strcpy(sysCfg.mqtt_pass, value);
 		}
-		os_printf("Key: %s, Val: %s \r\n", key, value);
+		else if (strcmp(key, "mqtt_topicroot") == 0) {
+			strcpy(sysCfg.mqtt_topicroot, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc0") == 0) {
+			strcpy(sysCfg.mqtt_topicadc0, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc1") == 0) {
+			strcpy(sysCfg.mqtt_topicadc1, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc2") == 0) {
+			strcpy(sysCfg.mqtt_topicadc2, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc3") == 0) {
+			strcpy(sysCfg.mqtt_topicadc3, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc4") == 0) {
+			strcpy(sysCfg.mqtt_topicadc4, value);
+		}
+		else if (strcmp(key, "mqtt_topicadc5") == 0) {
+			strcpy(sysCfg.mqtt_topicadc5, value);
+		}
 
 	}
 
@@ -218,8 +280,8 @@ LOCAL void HTTPConfig_SetData(char * pusrdata){
 
 LOCAL unsigned int HTTPConfig_AllInBuffer(){
 
-	char * start = 0;
-	start = os_strstr(recieveBuffer, "Content-Length:");
+	char * start = NULL;
+	start = strstr(recieveBuffer, "Content-Length:");
 
 	// If there is no Content Length header, there will be no data
 	if (start == NULL){
@@ -229,8 +291,8 @@ LOCAL unsigned int HTTPConfig_AllInBuffer(){
 	// Offset based on string length
 	start+= 15;
 
-	char * end = 0;
-	end = os_strstr(start, "\r\n");
+	char * end = NULL;
+	end = strstr(start, "\r\n");
 
 	if (end == NULL){
 		os_printf("!E");
@@ -239,14 +301,14 @@ LOCAL unsigned int HTTPConfig_AllInBuffer(){
 
 	char contentLengthStr[6] = {0};
 	unsigned int length = end - start;
-	os_strncpy(contentLengthStr, start, length);
+	strncpy(contentLengthStr, start, length);
 	contentLengthStr[length] = '\0';
 
 	unsigned int dataLength = 0;
 	dataLength = atoi(contentLengthStr);
 
-	char * data = 0;
-	data = os_strstr(recieveBuffer, "\r\n\r\n");
+	char * data = NULL;
+	data = strstr(recieveBuffer, "\r\n\r\n");
 
 	if (data == NULL){
 		return 0;
@@ -265,29 +327,29 @@ LOCAL void HTTPConfig_TCPServerRecieveCallback(void *arg, char *pusrdata, unsign
 
 	struct espconn *pespconn = arg;
 
-
-	os_strncpy(recieveBuffer + recieveBufferPosition, pusrdata, length);
-	recieveBufferPosition+= length;
-	recieveBuffer[recieveBufferPosition] = '\0';
+	// Append recieved data to buffer
+	recieveBuffer = (char *) os_realloc(recieveBuffer, (strlen(recieveBuffer) + length) * sizeof(char));
+	strncat(recieveBuffer, pusrdata, length);
+	os_free(pusrdata);
 
 	if (!HTTPConfig_AllInBuffer()){
 		return;
 	}
 
-	recieveBufferPosition = 0;
-
-
 	char requestType[16] = {0};
-	os_strncpy(requestType, pusrdata, os_strstr(pusrdata, "\r\n") - pusrdata);
+	strncpy(requestType, recieveBuffer, strstr(recieveBuffer, "\r\n") - recieveBuffer);
 
-	if (os_strcmp(requestType, "GET / HTTP/1.1") == 0) {
+	if (strcmp(requestType, "GET / HTTP/1.1") == 0) {
+		recieveBuffer = (char *) os_calloc(1, sizeof(char));
 		HTTPConfig_TCPServerSendResponse(pespconn, 200, HTTPConfig_GetForm());
 	}
-	else if (os_strcmp(requestType, "POST / HTTP/1.1") == 0) {
-		HTTPConfig_SetData(pusrdata);
+	else if (strcmp(requestType, "POST / HTTP/1.1") == 0) {
+		HTTPConfig_SetData();
+		recieveBuffer = (char *) os_calloc(1, sizeof(char));
 		HTTPConfig_TCPServerSendResponse(pespconn, 200, HTTPConfig_GetForm());
 	}
 	else{
+		recieveBuffer = (char *) os_calloc(1, sizeof(char));
 		HTTPConfig_TCPServerSendResponse(pespconn, 404, "");
 	}
 }
@@ -322,10 +384,13 @@ LOCAL void HTTPConfig_TCPPortConnected(void *arg) {
 	espconn_regist_sentcb(pesp_conn, HTTPConfig_TCPServerSent);
 }
 
+LOCAL void HTTPConfig_ScanComplete(){
+
+}
 
 void HTTPConfig_Init(void){
 
-	if (false){
+	if (true){
 		struct softap_config config;
 
 		wifi_softap_get_config(&config); // Get config first.
@@ -365,8 +430,7 @@ void HTTPConfig_Init(void){
 		wifi_station_connect();
 	}
 	
-
-
+	recieveBuffer = (char *) os_calloc(1, sizeof(char));
 
 
 	esp_conn.type = ESPCONN_TCP;
