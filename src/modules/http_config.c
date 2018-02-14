@@ -15,6 +15,7 @@ LOCAL struct espconn esp_conn;
 LOCAL esp_tcp esptcp;
 LOCAL char * recieveBuffer = NULL;
 
+
 LOCAL void HTTPConfig_TCPServerSendResponse(struct espconn *pespconn, int error, char *html_txt) {
 
 	char *buffer = NULL;
@@ -159,6 +160,7 @@ button{\
 	html = HTTPConfig_GetFormInputNumber(html, "MQTT Port", 		"mqtt_port", 		sysCfg.mqtt_port, 		"number");
 	html = HTTPConfig_GetFormInputString(html, "MQTT User Name", 	"mqtt_user", 		sysCfg.mqtt_user, 		sizeof(sysCfg.mqtt_user),"text");
 	html = HTTPConfig_GetFormInputString(html, "MQTT Password", 	"mqtt_pass", 		sysCfg.mqtt_pass, 		sizeof(sysCfg.mqtt_pass),"password");
+	html = HTTPConfig_GetFormInputNumber(html, "MQTT Keep Alive",	"mqtt_keepalive", 	sysCfg.mqtt_keepalive, 	"number");
 	html = HTTPConfig_GetFormInputString(html, "MQTT Root Topic", 	"mqtt_topicroot", 	sysCfg.mqtt_topicroot, 	sizeof(sysCfg.mqtt_topicroot),"text");
 	html = HTTPConfig_GetFormInputString(html, "MQTT ADC0 Topic", 	"mqtt_topicadc0", 	sysCfg.mqtt_topicadc0, 	sizeof(sysCfg.mqtt_topicadc0),"text");
 	html = HTTPConfig_GetFormInputString(html, "MQTT ADC1 Topic", 	"mqtt_topicadc1", 	sysCfg.mqtt_topicadc1, 	sizeof(sysCfg.mqtt_topicadc1),"text");
@@ -251,6 +253,9 @@ LOCAL void HTTPConfig_SetData(){
 		else if (strcmp(key, "mqtt_pass") == 0) {
 			strcpy(sysCfg.mqtt_pass, value);
 		}
+		else if (strcmp(key, "mqtt_keepalive") == 0) {
+			sysCfg.mqtt_keepalive = atoi(value);
+		}
 		else if (strcmp(key, "mqtt_topicroot") == 0) {
 			strcpy(sysCfg.mqtt_topicroot, value);
 		}
@@ -276,6 +281,8 @@ LOCAL void HTTPConfig_SetData(){
 	}
 
 	CFG_Save();
+
+	system_restart();
 }
 
 LOCAL unsigned int HTTPConfig_AllInBuffer(){
@@ -384,13 +391,9 @@ LOCAL void HTTPConfig_TCPPortConnected(void *arg) {
 	espconn_regist_sentcb(pesp_conn, HTTPConfig_TCPServerSent);
 }
 
-LOCAL void HTTPConfig_ScanComplete(){
-
-}
-
 void HTTPConfig_Init(void){
 
-	if (true){
+	if (false){
 		struct softap_config config;
 
 		wifi_softap_get_config(&config); // Get config first.
@@ -412,6 +415,8 @@ void HTTPConfig_Init(void){
 		wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, &mode);
 
 		os_printf("DHCP Started \r\n");
+
+
 	}
 
 	else {

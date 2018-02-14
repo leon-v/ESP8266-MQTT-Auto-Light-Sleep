@@ -53,6 +53,8 @@ typedef struct{
 	char mqtt_topicadc3[32];
 	char mqtt_topicadc4[32];
 	char mqtt_topicadc5[32];
+
+	uint8_t bootToConfig;
 } SYSCFG;
 
 typedef struct {

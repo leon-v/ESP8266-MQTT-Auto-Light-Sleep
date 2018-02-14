@@ -35,7 +35,7 @@ typedef enum{
 #define MQTT_BUF_SIZE        1024
 #define MQTT_KEEPALIVE        120     /*second*/
 #define MQTT_RECONNECT_TIMEOUT     5    /*second*/
-#define MQTT_SSL_ENABLE //* Please don't change or if you know what you doing */
+//#define MQTT_SSL_ENABLE //* Please don't change or if you know what you doing */
 
 #define STA_TYPE AUTH_WPA2_PSK
 #define QUEUE_BUFFER_SIZE                 2048

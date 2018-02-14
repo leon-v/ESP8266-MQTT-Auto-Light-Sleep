@@ -160,13 +160,16 @@ void user_init(void){
 	
 	//system_set_os_print(1);
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
-	os_delay_us(60000);
+	os_delay_us(65535);
 
-	int configMode = 0;
+	struct rst_info* resetInfo;
+	resetInfo = system_get_rst_info();
+
+	os_printf("RR: %d\r\n", resetInfo->reason);
 
 	CFG_Load();
 
-	if (configMode){
+	if (resetInfo->reason != 4){
 		INFO("\r\nStarting HTTP Config ....\r\n");
 		HTTPConfig_Init();
 	}
@@ -175,7 +178,7 @@ void user_init(void){
 
 		INFO("\r\nStarting MQTT ....\r\n");
 
-		MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
+		MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, 0);//sysCfg.security
 
 		MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 

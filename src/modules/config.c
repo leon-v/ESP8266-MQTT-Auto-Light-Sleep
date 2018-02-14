@@ -83,8 +83,6 @@ void ICACHE_FLASH_ATTR CFG_Load() {
 		sysCfg.sta_type = STA_TYPE;
 		sysCfg.security = DEFAULT_SECURITY;	/* default non ssl */
 
-		sysCfg.mqtt_keepalive = MQTT_KEEPALIVE;
-
 		INFO(" default configuration\r\n");
 
 		CFG_Save();

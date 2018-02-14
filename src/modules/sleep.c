@@ -4,6 +4,8 @@
 #include "gpio.h"
 #include "user_interface.h"
 #include "mqtt.h"
+#include "config.h"
+#include "mem.h"
 
 
 unsigned int counter = 0;
@@ -38,47 +40,93 @@ void ICACHE_FLASH_ATTR sendADCData(){
 	os_printf("send ADC Data\r\n");
 
 	
-	#define adcValueBuffferLength	20
+	#define adcValueBuffferLength	32
 
 	uint16 adc;
 	uint16 adcValueBufffer[adcValueBuffferLength];
-	uint16 adcValues[8];
 	uint16 adcValue;
 	uint16 adcValueIndex;
 	uint16 length;
+	uint16 clockDivider;
 	double adcValueSum;
 
+	length = adcValueBuffferLength;
+	clockDivider = 8;
+
+	char *mqttTopic = NULL;
+	mqttTopic = (char *) os_calloc(96, sizeof(char));
+
+	char *mqttValue = NULL;
+	mqttValue = (char *) os_calloc(8, sizeof(char));
+
+	gpio_output_set(BIT15, 0, BIT15, 0);
 	for (adc = 0; adc < 8; adc++){
 
 		setADC(adc);
-		os_delay_us(500);
+		os_delay_us(65535);
 
 		ets_intr_lock();		 //close	interrupt
-		system_adc_read_fast(adcValueBufffer,	adcValueBuffferLength,	8);
+		system_adc_read_fast(adcValueBufffer,	length,	clockDivider);
 		ets_intr_unlock();	 	 //open	interrupt
 
-		for(adcValueIndex = 0; adcValueIndex < adcValueBuffferLength; adcValueIndex++){
-			adcValue = adcValueBufffer[adcValueIndex];
-			adcValueSum+= (double) adcValue;
+		adcValueSum = 0.0;
+		for(adcValueIndex = 0; adcValueIndex < length; adcValueIndex++){
+			adcValueSum+= (double) adcValueBufffer[adcValueIndex];;
 		}
 
-		adcValues[adc] = (unsigned int) (adcValueSum / adcValueBuffferLength);
+		adcValue = (unsigned int) (adcValueSum / length);
+
+		os_sprintf(mqttValue, "%d", adcValue);
+
+		mqttTopic = strcpy(mqttTopic, sysCfg.mqtt_topicroot);
+		switch (adc){
+			case 0:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc0);
+				break;
+			case 1:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc1);
+				break;
+			case 2:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc2);
+				break;
+			case 3:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc3);
+				break;
+			case 4:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc4);
+				break;
+			case 5:
+				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc5);
+				break;
+			case 6:
+				mqttTopic = strcat(mqttTopic, "/BatteryVoltage");
+				break;
+			case 7:
+				mqttTopic = strcat(mqttTopic, "/InputVoltage");
+				break;
+		}
+
+		os_printf("%s = %s\r\n", mqttTopic, mqttValue);
+
+		MQTT_Publish(mqttClient, mqttTopic, mqttValue, strlen(mqttValue), 1, 1);
 	}
 
-	char valueString[9];
-	char pathString[24];
+	gpio_output_set(0, BIT15, BIT15, 0);
 
-	for (adc = 0; adc < 8; adc++){
+	// char valueString[9];
+	// char pathString[24];
 
-		adcValue = adcValues[adc];
+	// for (adc = 0; adc < 8; adc++){
 
-		os_sprintf(valueString, "%d", adcValue);
-		os_sprintf(pathString, "/sensor/adc%d/current", (unsigned int) adc);
+	// 	adcValue = adcValues[adc];
 
-		os_printf("ADC:%d = %d\r\n", adc, adcValue);
-		MQTT_Publish(mqttClient, pathString, valueString, strlen(valueString), 1, 1);
+	// 	os_sprintf(valueString, "%d", adcValue);
+	// 	os_sprintf(pathString, "/sensor/adc%d/current", (unsigned int) adc);
 
-	}
+	// 	os_printf("ADC:%d = %d\r\n", adc, adcValue);
+	// 	MQTT_Publish(mqttClient, pathString, valueString, strlen(valueString), 1, 1);
+
+	// }
 
 	
 
@@ -153,13 +201,15 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 
-	gpio_output_set(BIT15, 0, 0, BIT15);// Input Set
+	//gpio_output_set(BIT15, 0, 0, BIT15);// Input Set
 	gpio_output_set(BIT0, 0, 0, BIT0);// Input Set
 	gpio_output_set(BIT1, 0, 0, BIT1);// Input Set
 	// MTDO, U0TXD and GPIO0
 
 
 	//Setup 415 pins
+	gpio_output_set(0, BIT15, BIT15, 0);
+
 	gpio_output_set(BIT13, 0, BIT13, 0);
 	gpio_output_set(BIT12, 0, BIT12, 0);
 	gpio_output_set(BIT16, 0, BIT16, 0);
