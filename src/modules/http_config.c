@@ -393,7 +393,7 @@ LOCAL void HTTPConfig_TCPPortConnected(void *arg) {
 
 void HTTPConfig_Init(void){
 
-	if (false){
+	if (true){
 		struct softap_config config;
 
 		wifi_softap_get_config(&config); // Get config first.

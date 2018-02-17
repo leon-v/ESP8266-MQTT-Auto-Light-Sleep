@@ -169,7 +169,8 @@ void user_init(void){
 
 	CFG_Load();
 
-	if (resetInfo->reason != 4){
+	//if (resetInfo->reason != 4){
+	if (0){
 		INFO("\r\nStarting HTTP Config ....\r\n");
 		HTTPConfig_Init();
 	}

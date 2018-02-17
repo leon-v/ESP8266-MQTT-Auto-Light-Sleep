@@ -6,6 +6,7 @@
 #include "mqtt.h"
 #include "config.h"
 #include "mem.h"
+#include "gpio16.h"
 
 
 unsigned int counter = 0;
@@ -16,21 +17,23 @@ LOCAL MQTT_Client* mqttClient;
 void ICACHE_FLASH_ATTR setADC(unsigned int index){
 
 	if ((index >> 0) & 0x0001){
-		gpio_output_set(0, BIT16, BIT16, 0);
+		gpio16_output_set(1);
+		// gpio_output_set(BIT16, 0, BIT16, 0);
 	} else{
-		gpio_output_set(BIT16, 0, BIT16, 0);
+		gpio16_output_set(0);
+		// gpio_output_set(0, BIT16, BIT16, 0);
 	}
 
 	if ((index >> 1) & 0x0001){
-		gpio_output_set(0, BIT12, BIT12, 0);
-	} else{
 		gpio_output_set(BIT12, 0, BIT12, 0);
+	} else{
+		gpio_output_set(0, BIT12, BIT12, 0);
 	}
 
 	if ((index >> 2) & 0x0001){
-		gpio_output_set(0, BIT13, BIT13, 0);
-	} else{
 		gpio_output_set(BIT13, 0, BIT13, 0);
+	} else{
+		gpio_output_set(0, BIT13, BIT13, 0);
 	}
 }
 
@@ -40,7 +43,7 @@ void ICACHE_FLASH_ATTR sendADCData(){
 	os_printf("send ADC Data\r\n");
 
 	
-	#define adcValueBuffferLength	32
+	#define adcValueBuffferLength	1024
 
 	uint16 adc;
 	uint16 adcValueBufffer[adcValueBuffferLength];
@@ -59,7 +62,8 @@ void ICACHE_FLASH_ATTR sendADCData(){
 	char *mqttValue = NULL;
 	mqttValue = (char *) os_calloc(8, sizeof(char));
 
-	gpio_output_set(BIT15, 0, BIT15, 0);
+	gpio_output_set(0, BIT15, BIT15, 0); 			// Set GPIO15 low output
+	os_delay_us(65535);
 	for (adc = 0; adc < 8; adc++){
 
 		setADC(adc);
@@ -111,22 +115,7 @@ void ICACHE_FLASH_ATTR sendADCData(){
 		MQTT_Publish(mqttClient, mqttTopic, mqttValue, strlen(mqttValue), 1, 1);
 	}
 
-	gpio_output_set(0, BIT15, BIT15, 0);
-
-	// char valueString[9];
-	// char pathString[24];
-
-	// for (adc = 0; adc < 8; adc++){
-
-	// 	adcValue = adcValues[adc];
-
-	// 	os_sprintf(valueString, "%d", adcValue);
-	// 	os_sprintf(pathString, "/sensor/adc%d/current", (unsigned int) adc);
-
-	// 	os_printf("ADC:%d = %d\r\n", adc, adcValue);
-	// 	MQTT_Publish(mqttClient, pathString, valueString, strlen(valueString), 1, 1);
-
-	// }
+	gpio_output_set(BIT15, 0, BIT15, 0); 			// Set GPIO15 high output (up)
 
 	
 
@@ -165,11 +154,13 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 		return;
 	}
 
+	wifi_set_sleep_type(NONE_SLEEP_T);
+
 	lastWakeTime = system_get_rtc_time();
 
 	// Recharge and start discharging capacitor
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
-	os_delay_us(1000);
+	os_delay_us(2000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
 	os_printf("Interrupt\r\n");
@@ -177,11 +168,9 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	wifi_check_ip();
 
 	wakeCount++;
-	if (wakeCount >= 4) {
+	if (wakeCount >= 1) {
 
 		wakeCount = 0;
-
-		wifi_set_sleep_type(NONE_SLEEP_T);
 
 		mqtt_timer(mqttClient);
 
@@ -190,6 +179,8 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 		os_timer_disarm(&goToSleep_timer);
 		os_timer_arm(&goToSleep_timer, 10, 1);
 
+	}else{
+		wifi_set_sleep_type(LIGHT_SLEEP_T);
 	}
 
 	
@@ -201,18 +192,30 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 
+	 gpio_init();
+
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15); 	// Set GPIO15 function
+
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
+	PIN_PULLUP_EN(PERIPHS_IO_MUX_MTDI_U);
+
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
+
+	gpio16_output_conf();
+
 	//gpio_output_set(BIT15, 0, 0, BIT15);// Input Set
-	gpio_output_set(BIT0, 0, 0, BIT0);// Input Set
-	gpio_output_set(BIT1, 0, 0, BIT1);// Input Set
+	//gpio_output_set(BIT0, 0, 0, BIT0);// Input Set
+	//gpio_output_set(BIT1, 0, 0, BIT1);// Input Set
 	// MTDO, U0TXD and GPIO0
 
 
 	//Setup 415 pins
-	gpio_output_set(0, BIT15, BIT15, 0);
+	//gpio_output_set(BIT15, 0, BIT15, 0); 			// Set GPIO15 high output (up)
+	gpio_output_set(0, BIT15, BIT15, 0); 			// Set GPIO15 low output
 
 	gpio_output_set(BIT13, 0, BIT13, 0);
 	gpio_output_set(BIT12, 0, BIT12, 0);
-	gpio_output_set(BIT16, 0, BIT16, 0);
+	gpio16_output_set(1);
 
 
 	mqttClient = (MQTT_Client*) args;
