@@ -63,11 +63,11 @@ void ICACHE_FLASH_ATTR sendADCData(){
 	mqttValue = (char *) os_calloc(8, sizeof(char));
 
 	gpio_output_set(0, BIT15, BIT15, 0); 			// Set GPIO15 low output
-	os_delay_us(65535);
+	os_delay_us(1000);
 	for (adc = 0; adc < 8; adc++){
 
 		setADC(adc);
-		os_delay_us(65535);
+		os_delay_us(1000);
 
 		ets_intr_lock();		 //close	interrupt
 		system_adc_read_fast(adcValueBufffer,	length,	clockDivider);
@@ -149,40 +149,39 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	uint32 thisWakeTime = system_get_rtc_time();
 
 	// De-bounce interrupt
-	if ((thisWakeTime - lastWakeTime) < 10000){
+	if ((thisWakeTime - lastWakeTime) < 10){
 		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 		return;
 	}
-
-	wifi_set_sleep_type(NONE_SLEEP_T);
 
 	lastWakeTime = system_get_rtc_time();
 
 	// Recharge and start discharging capacitor
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
-	os_delay_us(2000);
+	os_delay_us(5000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
 	os_printf("Interrupt\r\n");
 
+	wifi_set_sleep_type(NONE_SLEEP_T);
+
 	wifi_check_ip();
 
+	mqtt_timer(mqttClient);
+
 	wakeCount++;
-	if (wakeCount >= 1) {
+	if (wakeCount >= 4) {
 
 		wakeCount = 0;
-
-		mqtt_timer(mqttClient);
 
 		sendADCData();
 
 		os_timer_disarm(&goToSleep_timer);
 		os_timer_arm(&goToSleep_timer, 10, 1);
-
-	}else{
+	}
+	else{
 		wifi_set_sleep_type(LIGHT_SLEEP_T);
 	}
-
 	
 
 	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
@@ -201,12 +200,22 @@ void ICACHE_FLASH_ATTR sleepInit(uint32_t *args){
 
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
 
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14); // select pin to GPIO 14 mode
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTMS_U);
+	//PIN_PULLDWN_DIS(PERIPHS_IO_MUX_MTMS_U);
+
+   gpio_output_set( BIT14, 0, BIT14, 0 );
+
 	gpio16_output_conf();
 
 	//gpio_output_set(BIT15, 0, 0, BIT15);// Input Set
 	//gpio_output_set(BIT0, 0, 0, BIT0);// Input Set
 	//gpio_output_set(BIT1, 0, 0, BIT1);// Input Set
 	// MTDO, U0TXD and GPIO0
+
+	gpio_output_set(BIT2,0, BIT2, 0); // LED OFF
+
+	gpio_output_set(0, BIT14, 0, BIT14);// Bit 14 input
 
 
 	//Setup 415 pins
