@@ -158,7 +158,7 @@ void user_init(void){
 
 	INFO("\r\nBOOT\r\n");
 	
-	//system_set_os_print(1);
+	// system_set_os_print(0);
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(65535);
 

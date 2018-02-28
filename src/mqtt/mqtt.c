@@ -601,10 +601,11 @@ MQTT_Ping(MQTT_Client *client)
     return TRUE;
 }
 
-void ICACHE_FLASH_ATTR
-MQTT_Task(os_event_t *e)
-{
+void ICACHE_FLASH_ATTR MQTT_Task(os_event_t *e) {
     MQTT_Client* client = (MQTT_Client*)e->par;
+
+    INFO("Exec MQTT_Task\r\n");
+
     uint8_t dataBuffer[MQTT_BUF_SIZE];
     uint16_t dataLen;
     if (e->par == 0)
@@ -799,7 +800,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 
 
     os_timer_disarm(&mqttClient->mqttTimer);
-    // os_timer_setfn(&mqttClient->mqttTimer, (os_timer_func_t *)mqtt_timer, mqttClient);
+    os_timer_setfn(&mqttClient->mqttTimer, (os_timer_func_t *)mqtt_timer, mqttClient);
     // os_timer_arm(&mqttClient->mqttTimer, 1000, 1);
 
     os_printf("your ESP SSL/TLS configuration is %d.[0:NO_TLS\t1:TLS_WITHOUT_AUTHENTICATION\t2ONE_WAY_ANTHENTICATION\t3TWO_WAY_ANTHENTICATION]\n",DEFAULT_SECURITY);
