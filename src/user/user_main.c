@@ -41,14 +41,14 @@
 
 MQTT_Client mqttClient;
 
-void wifiConnectCb(uint8_t status){
+void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status){
 	if(status == STATION_GOT_IP){
 		MQTT_Connect(&mqttClient);
 	} else {
 		MQTT_Disconnect(&mqttClient);
 	}
 }
-void mqttConnectedCb(uint32_t *args){
+void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Connected\r\n");
 
@@ -70,21 +70,21 @@ void mqttConnectedCb(uint32_t *args){
 	//sleepSetEnable();
 }
 
-void mqttDisconnectedCb(uint32_t *args){
+void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Disconnected\r\n");
 
 	//sleepSetDisable();
 }
 
-void mqttPublishedCb(uint32_t *args){
+void ICACHE_FLASH_ATTR mqttPublishedCb(uint32_t *args){
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Published\r\n");
 
 	//sleepSetEnable();
 }
 
-void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t data_len){
+void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t data_len){
 	char *topicBuf = (char*)os_zalloc(topic_len+1),
 			*dataBuf = (char*)os_zalloc(data_len+1);
 
@@ -153,12 +153,12 @@ user_rf_cal_sector_set(void)
     return rf_cal_sec;
 }
 
-
-void user_init(void){
+void ICACHE_FLASH_ATTR user_init(void){
 
 	INFO("\r\nBOOT\r\n");
 	
 	// system_set_os_print(0);
+	INFO("\r\nDEBUG DISABLE\r\n");
 	//uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(65535);
 

@@ -18,6 +18,7 @@ make COMPILE=gcc BOOT=$boot APP=$app SPI_SPEED=$spi_speed SPI_MODE=$spi_mode SPI
 rm ./firmware/*
 mkdir ./firmware
 
+# # Comment out the following block and re-compile to re-set boot + cal sectors
 # cp ../bin/boot_v1.6.bin					./firmware/0x00000.bin
 # cp ../bin/esp_init_data_default_v08.bin	./firmware/0x3fc000.bin
 # cp ../bin/blank.bin						./firmware/0xfe000.bin

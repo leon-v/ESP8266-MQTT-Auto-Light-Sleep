@@ -59,10 +59,10 @@ void ICACHE_FLASH_ATTR sendADCData(){
 	clockDivider = 8;
 
 	char *mqttTopic = NULL;
-	mqttTopic = (char *) os_calloc(96, sizeof(char));
+	mqttTopic = (char *) os_malloc(96 * sizeof(char));
 
 	char *mqttValue = NULL;
-	mqttValue = (char *) os_calloc(8, sizeof(char));
+	mqttValue = (char *) os_malloc(8 * sizeof(char));
 
 	gpio_output_set(0, BIT15, BIT15, 0); 			// Set GPIO15 low output
 	os_delay_us(100);
@@ -93,28 +93,33 @@ void ICACHE_FLASH_ATTR sendADCData(){
 		mqttTopic = strcpy(mqttTopic, sysCfg.mqtt_topicroot);
 		switch (adc){
 			case 0:
+				adcValue = (unsigned int) ((adcValueSum * sysCfg.mqtt_muladc0) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
 				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc0);
 				break;
 			case 1:
+				adcValue = (unsigned int) ((adcValueSum * sysCfg.mqtt_muladc1) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
 				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc1);
 				break;
 			case 2:
+				adcValue = (unsigned int) ((adcValueSum * sysCfg.mqtt_muladc2) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
 				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc2);
 				break;
 			case 3:
+				adcValue = (unsigned int) ((adcValueSum * sysCfg.mqtt_muladc3) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
 				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc3);
 				break;
 			case 4:
+				adcValue = (unsigned int) ((adcValueSum * 10) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
-				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc4);
+				mqttTopic = strcat(mqttTopic, "/ChargeSupply");
 				break;
 			case 5:
-				os_sprintf(mqttValue, "%d", adcValue);
-				mqttTopic = strcat(mqttTopic, sysCfg.mqtt_topicadc5);
+				adcValue = (unsigned int) ((adcValueSum * 10) / length);
+				mqttTopic = strcat(mqttTopic, "/RegulatedChargeSupply");
 				break;
 			case 6:
 				adcValue = (unsigned int) ((adcValueSum * 4.3) / length);
@@ -124,7 +129,7 @@ void ICACHE_FLASH_ATTR sendADCData(){
 			case 7:
 				adcValue = (unsigned int) ((adcValueSum * 4.3) / length);
 				os_sprintf(mqttValue, "%d", adcValue);
-				mqttTopic = strcat(mqttTopic, "/VCC");
+				mqttTopic = strcat(mqttTopic, "/Regulated3.3V");
 				break;
 		}
 
@@ -135,14 +140,19 @@ void ICACHE_FLASH_ATTR sendADCData(){
 
 	gpio_output_set(BIT15, 0, BIT15, 0); 			// Set GPIO15 high output (up)
 
-	
-
 	counter++;
+
+	os_sprintf(mqttValue, "%d", counter);
+	mqttTopic = strcpy(mqttTopic, sysCfg.mqtt_topicroot);
+	mqttTopic = strcat(mqttTopic, "/Counter");
+	os_printf("%s = %s\r\n", mqttTopic, mqttValue);
+	MQTT_Publish(mqttClient, mqttTopic, mqttValue, strlen(mqttValue), 1, 1);
+
 }
 
 
 static os_timer_t goToSleep_timer;
-void goToSleep(void *arg){
+void ICACHE_FLASH_ATTR goToSleep(void *arg){
 	os_timer_disarm(&goToSleep_timer);
 
 	os_printf("Checking is we can sleep.....\r\n");
@@ -177,7 +187,7 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 	uint32 thisWakeTime = system_get_rtc_time();
 
 	// De-bounce interrupt
-	if ((thisWakeTime - lastWakeTime) < 100000){
+	if ((thisWakeTime - lastWakeTime) < 10000){
 		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 		return;
 	}
@@ -188,13 +198,13 @@ void ICACHE_FLASH_ATTR sleepWakeOnInterruptHandeler(int * arg){
 
 	// Recharge and start discharging capacitor
 	gpio_output_set(BIT14, 0, BIT14, 0);// Output Set &= 1
-	os_delay_us(65535);
+	os_delay_us(2000);
 	gpio_output_set(BIT14, 0, 0, BIT14);// Input Set
 
 	wifi_check_ip();
 
 	wakeCount++;
-	if (wakeCount >= 2) {
+	if (wakeCount >= 3) {
 
 		wifi_set_sleep_type(NONE_SLEEP_T);
 

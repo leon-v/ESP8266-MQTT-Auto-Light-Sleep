@@ -48,11 +48,13 @@ typedef struct{
 	uint8_t security;
 	char mqtt_topicroot[64];
 	char mqtt_topicadc0[32];
+	double mqtt_muladc0;
 	char mqtt_topicadc1[32];
+	double mqtt_muladc1;
 	char mqtt_topicadc2[32];
+	double mqtt_muladc2;
 	char mqtt_topicadc3[32];
-	char mqtt_topicadc4[32];
-	char mqtt_topicadc5[32];
+	double mqtt_muladc3;
 
 	uint8_t bootToConfig;
 } SYSCFG;
