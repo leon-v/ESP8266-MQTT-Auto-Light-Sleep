@@ -1,6 +1,7 @@
-## Low power real time ESP8266 + MQTT.
+### ESP8266 DID NOT PROVIDE LOW ENOUGH POWER FOR TASK: ABANDOING.
+New project: https://github.com/leon-v/MQTT-ESP8266-nRF24L01-Solar-Battery-I-O-Network
 
-### THIS PROJEST IS STILL COMING OUT OF PROOF-OF-CONCEPT
+## Low power real time ESP8266 + MQTT.
 
 #### The Environment:
 So you understand this build environment, here is its description.
